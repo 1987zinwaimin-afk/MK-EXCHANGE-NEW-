@@ -107,13 +107,14 @@
  </section>
 </div>
 <script>
+const $=id=>document.getElementById(id),num=id=>Number($(id)?.value||0),fmt=n=>Number(n).toLocaleString("en-US",{maximumFractionDigits:2});
 const names={dashboard:"Owner Dashboard",rates:"Exchange Rates",exchange:"New Exchange",requests:"Customer Requests",customers:"Customers",ledger:"Money Ledger",bank:"Cash & Bank",daily:"Daily Closing",receipts:"Digital Receipts",audit:"Audit Log",notify:"Notifications",settings:"Owner Settings",customer:"Customer Website Preview"};
 function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));const morePages=["rates","requests","bank","daily","receipts","audit","notify","settings","customer"];document.getElementById("moreToggle").classList.toggle("active",morePages.includes(id));document.getElementById("title").textContent=names[id]||"MK EXCHANGE";window.scrollTo(0,0)}
 document.querySelectorAll("[data-page]").forEach(x=>x.addEventListener("click",()=>{show(x.dataset.page);closeMore()}));
 function openMore(){ $("moreSheet").classList.add("open");$("moreBackdrop").classList.add("open");$("moreToggle").setAttribute("aria-expanded","true")}
 function closeMore(){ $("moreSheet").classList.remove("open");$("moreBackdrop").classList.remove("open");$("moreToggle").setAttribute("aria-expanded","false")}
 $("moreToggle").addEventListener("click",openMore);$("moreClose").addEventListener("click",closeMore);$("moreBackdrop").addEventListener("click",closeMore);
-const $=id=>document.getElementById(id),num=id=>Number($(id)?.value||0),fmt=n=>Number(n).toLocaleString("en-US",{maximumFractionDigits:2});
+
 $("today").textContent=new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
 $("saveRates").addEventListener("click",()=>{let a=num("rateA"),b=num("rateB");$("dashA").textContent=a?fmt(a)+" MMK":"—";$("dashB").textContent=b?fmt(b)+" MMK":"—";$("calcThb").dispatchEvent(new Event("input"));$("calcMmk").dispatchEvent(new Event("input"));alert("Preview Session အတွက် Rate ပြောင်းပြီးပါပြီ။")});
 $("calcThb").addEventListener("input",()=>{$("calcA").textContent=num("calcThb")&&num("rateA")?fmt(num("calcThb")*num("rateA"))+" MMK":"— MMK"});
