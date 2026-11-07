@@ -1,7 +1,6 @@
 import {
   auth, db, onAuthStateChanged,
-  collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp,
-  storage, storageRef, uploadBytes, getDownloadURL, deleteObject
+  collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp
 } from "./firebase.js";
 
 const OWNER_EMAIL = "1987zinwaimin@gmail.com";
@@ -52,6 +51,17 @@ function clearQrSelection() {
   $("bankQrPreview").style.display = "none";
   $("bankQrPreviewImg").removeAttribute("src");
 }
+async function compressQrImage(file) {
+  const image = await createImageBitmap(file);
+  const scale = Math.min(1, 480 / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height); image.close();
+  return canvas.toDataURL("image/png");
+}
 function showQrPreview(file) {
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
   previewObjectUrl = URL.createObjectURL(file);
@@ -83,9 +93,10 @@ function renderAccounts(accounts) {
     card.append(makeText("p", "sub", "Type: " + (account.accountType || "—") + (account.branch ? " · Branch: " + account.branch : "")));
     if (account.note) card.append(makeText("p", "sub", "မှတ်ချက်: " + account.note));
     const qrUrl = safeQrUrl(account.qrUrl);
-    if (qrUrl) {
+    const qrImage = account.qrDataUrl || qrUrl;
+    if (qrImage) {
       const qr = document.createElement("img");
-      qr.src = qrUrl;
+      qr.src = qrImage;
       qr.alt = account.bankName + " payment QR";
       qr.loading = "lazy";
       qr.referrerPolicy = "no-referrer";
@@ -130,8 +141,8 @@ function beginEdit(account) {
   $("bankType").value = account.accountType || "Saving";
   $("bankBranch").value = account.branch || "";
   clearQrSelection();
-  if (account.qrUrl) {
-    $("bankQrPreviewImg").src = account.qrUrl;
+  if (account.qrDataUrl || account.qrUrl) {
+    $("bankQrPreviewImg").src = account.qrDataUrl || account.qrUrl;
     $("bankQrPreview").style.display = "block";
   }
   $("bankNote").value = account.note || "";
@@ -143,11 +154,7 @@ function beginEdit(account) {
 async function removeAccount(id, name) {
   if (!ownerReady || !confirm((name || "ဤအကောင့်") + " ကို ဖျက်မှာ သေချာပါသလား။")) return;
   try {
-    const accountRef = doc(db, "ownerBankAccounts", id);
-    const snapshot = await getDocs(query(collection(db, "ownerBankAccounts")));
-    const old = snapshot.docs.find(item => item.id === id)?.data();
-    await deleteDoc(accountRef);
-    if (old?.qrPath) { try { await deleteObject(storageRef(storage, old.qrPath)); } catch {} }
+    await deleteDoc(doc(db, "ownerBankAccounts", id));
     say("ဘဏ်အကောင့်ကို ဖျက်ပြီးပါပြီ။");
     await loadAccounts();
   } catch (error) {
@@ -185,25 +192,24 @@ form.addEventListener("submit", async (event) => {
   };
   saveButton.disabled = true;
   try {
-    let accountId = editingId;
-    let previousQrPath = "";
-    if (editingId) {
-      const snap = await getDocs(query(collection(db, "ownerBankAccounts")));
-      previousQrPath = snap.docs.find(item => item.id === editingId)?.data()?.qrPath || "";
-      await updateDoc(doc(db, "ownerBankAccounts", editingId), data);
-    } else {
-      const created = await addDoc(collection(db, "ownerBankAccounts"), { ...data, createdAt: serverTimestamp() });
-      accountId = created.id;
-    }
+    let qrDataUrl = "";
     if (qrFile) {
-      const path = "bank-qr/" + auth.currentUser.uid + "/" + accountId + "/" + Date.now() + "-" + qrFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const fileRef = storageRef(storage, path);
-      await uploadBytes(fileRef, qrFile, { contentType: qrFile.type });
-      const url = await getDownloadURL(fileRef);
-      await updateDoc(doc(db, "ownerBankAccounts", accountId), { qrUrl: url, qrPath: path });
-      if (previousQrPath) { try { await deleteObject(storageRef(storage, previousQrPath)); } catch {} }
+      qrDataUrl = await compressQrImage(qrFile);
+      if (qrDataUrl.length > 780000) {
+        say("QR ပုံဖိုင်အရွယ်အစား ကြီးနေပါသည်။ ပိုသေးသော QR ပုံကို ရွေးပါ။", true);
+        return;
+      }
     }
-    say(editingId ? "ဘဏ်အကောင့် ပြင်ဆင်ပြီးပါပြီ။" : "ဘဏ်အကောင့် အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+    const saveData = { ...data };
+    delete saveData.qrUrl;
+    if (qrDataUrl) { saveData.qrDataUrl = qrDataUrl; saveData.qrUrl = ""; }
+    if (editingId) {
+      await updateDoc(doc(db, "ownerBankAccounts", editingId), saveData);
+      say("ဘဏ်အကောင့် ပြင်ဆင်ပြီးပါပြီ။");
+    } else {
+      await addDoc(collection(db, "ownerBankAccounts"), { ...saveData, createdAt: serverTimestamp() });
+      say("ဘဏ်အကောင့် အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+    }
     resetForm();
     await loadAccounts();
   } catch (error) {
