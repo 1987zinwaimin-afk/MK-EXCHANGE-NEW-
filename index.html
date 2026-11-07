@@ -79,7 +79,7 @@
 </div></main></div>
 <script>
 const names={dashboard:"Owner Dashboard",rates:"Exchange Rates",exchange:"New Exchange",requests:"Customer Requests",customers:"Customers",ledger:"Money Ledger",bank:"Cash & Bank",daily:"Daily Closing",receipts:"Digital Receipts",audit:"Audit Log",notify:"Notifications",settings:"Owner Settings",customer:"Customer Website Preview"};
-function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));document.getElementById("title").textContent=names[id]||"MK EXCHANGE";window.scrollTo(0,0)}
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));const morePages=["rates","requests","bank","daily","receipts","audit","notify","settings","customer"];document.getElementById("moreToggle").classList.toggle("active",morePages.includes(id));document.getElementById("title").textContent=names[id]||"MK EXCHANGE";window.scrollTo(0,0)}
 document.querySelectorAll("[data-page]").forEach(x=>x.addEventListener("click",()=>{show(x.dataset.page);closeMore()}));
 function openMore(){ $("moreSheet").classList.add("open");$("moreBackdrop").classList.add("open");$("moreToggle").setAttribute("aria-expanded","true")}
 function closeMore(){ $("moreSheet").classList.remove("open");$("moreBackdrop").classList.remove("open");$("moreToggle").setAttribute("aria-expanded","false")}
