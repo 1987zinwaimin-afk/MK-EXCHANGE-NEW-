@@ -11,13 +11,8 @@ const firebaseConfig = {
   appId: "1:948420608859:web:2edd66d8d6253809ea107e"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut };
 await setPersistence(auth, browserLocalPersistence);
-
-window.MKFirebase = {
-  app, auth, db, onAuthStateChanged, signInWithEmailAndPassword,
-  signInWithPopup, GoogleAuthProvider, signOut
-};
-window.dispatchEvent(new Event("mk-firebase-ready"));
