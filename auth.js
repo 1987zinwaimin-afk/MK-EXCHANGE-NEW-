@@ -7,7 +7,7 @@ const message = byId("authMessage");
 function setMessage(text, error=false){message.textContent=text;message.style.color=error?"#b42318":"#397f79";}
 function openAuth(){modal.classList.add("open");modal.setAttribute("aria-hidden","false");}
 function closeAuth(){modal.classList.remove("open");modal.setAttribute("aria-hidden","true");}
-byId("ownerLoginBtn").addEventListener("click",openAuth);
+byId("ownerLoginBtn").addEventListener("click",async()=>{if(auth.currentUser){await signOut(auth);setMessage("Signed out.");}else openAuth();});
 byId("authClose").addEventListener("click",closeAuth);
 byId("authBackdrop").addEventListener("click",closeAuth);
 {
@@ -28,7 +28,7 @@ byId("authBackdrop").addEventListener("click",closeAuth);
  byId("googleLogin").addEventListener("click",async()=>{
    try{await fb.signInWithPopup(fb.auth,new fb.GoogleAuthProvider());}catch(e){setMessage("Google Login မအောင်မြင်ပါ: "+e.message,true);}
  });
- byId("ownerLoginBtn").addEventListener("dblclick",async()=>{if(fb.auth.currentUser){await fb.signOut(fb.auth);setMessage("Signed out.");}});
+
  setMessage("Firebase ချိတ်ဆက်ပြီးပါပြီ။ Owner email ကို သတ်မှတ်ရန် လိုအပ်သည်။");
 }
 window.addEventListener("error",e=>{if(e.message?.includes("Firebase"))setMessage(e.message,true);});
