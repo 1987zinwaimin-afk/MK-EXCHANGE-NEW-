@@ -22,7 +22,7 @@ async function refresh(){
  banks=bankSnap.docs.map(d=>({id:d.id,...d.data()}));
  const movements=movSnap.docs.map(d=>({id:d.id,...d.data()}));
  const sums={THB:{CASH:0,BANK:0},MMK:{CASH:0,BANK:0}}, byAccount={};
- banks.forEach(b=>{byAccount[b.id]={name:b.bankName||b.name||"Bank",currency:b.currency||"THB",balance:Number(b.openingBalance||0)};});
+ banks.forEach(b=>{const cur=b.currency==="MMK"?"MMK":"THB";const opening=Number(b.openingBalance||0);byAccount[b.id]={name:b.bankName||"Bank",currency:cur,balance:opening};sums[cur].BANK+=opening;});
  movements.forEach(m=>{
   const amount=Number(m.amount||0)*(m.entryType==="OUT"?-1:1);
   const c=m.currency==="MMK"?"MMK":"THB",type=m.accountType==="BANK"?"BANK":"CASH";
