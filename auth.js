@@ -1,5 +1,5 @@
 import { auth, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from "./firebase.js";
-const OWNER_EMAIL = ""; // Set only after the business owner confirms the exact owner email.
+const OWNER_EMAIL = "1987zinwaimin@gmail.com";
 const byId = (id) => document.getElementById(id);
 const status = byId("authStatus");
 const modal = byId("authModal");
@@ -14,10 +14,10 @@ byId("authBackdrop").addEventListener("click",closeAuth);
  const fb={auth,onAuthStateChanged,signInWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut};
  fb.onAuthStateChanged(fb.auth,user=>{
    if(!user){status.textContent="OWNER LOGIN";byId("ownerLoginBtn").textContent="Owner Login";return;}
-   const isOwner=!!OWNER_EMAIL && user.email?.toLowerCase()===OWNER_EMAIL.toLowerCase();
+   const isOwner=!!OWNER_EMAIL && user.email?.toLowerCase()===OWNER_EMAIL.toLowerCase() && user.emailVerified;
    status.textContent=isOwner?"OWNER VERIFIED":"ACCESS PENDING";
    byId("ownerLoginBtn").textContent=isOwner?"Sign out":(user.email||"Signed in");
-   setMessage(isOwner?"Owner account verified.":"Signed in, but owner permission is not configured yet.",!isOwner);
+   setMessage(isOwner?"Owner account verified.":"Only the verified owner email is allowed. Verify your email or use the correct Google account.",!isOwner);
    if(isOwner) closeAuth();
  });
  byId("emailLogin").addEventListener("click",async()=>{
