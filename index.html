@@ -27,6 +27,7 @@
 @media(max-width:900px){.layout{grid-template-columns:1fr}.side{display:none}.content{padding:20px 15px}.top{padding:0 15px}.cards{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}.mobile-nav{display:flex;gap:5px;overflow:auto;padding:8px;background:white;border-bottom:1px solid var(--line)}.mobile-nav button{white-space:nowrap;flex:0 0 auto;border:1px solid var(--line);background:white;border-radius:8px;padding:7px 10px;font-size:10px;color:var(--ink)}.mobile-nav button.active{background:var(--teal2);border-color:#9bbeb5;color:var(--teal);font-weight:700}.mobile-nav{scrollbar-width:thin;scroll-behavior:smooth}}
 @media(max-width:520px){.content{padding:16px 11px 30px}.welcome h1{font-size:20px}.date{font-size:10px}.cards{gap:8px}.card,.panel{padding:12px}.value{font-size:18px}.formgrid{grid-template-columns:1fr}.top{height:60px}.brand.mobile{display:flex}.toplabel{display:none}}
 @media(max-width:900px){.mobile-nav{display:none!important}}
+.auth-modal{display:none}.auth-modal.open{display:block}.auth-backdrop{position:fixed;inset:0;background:#102d2b88;z-index:80}.auth-card{position:fixed;z-index:81;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,420px);background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 25px 80px #102d2b44}.auth-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}.auth-head h2{margin:0;color:var(--ink)}.auth-head p,.auth-note{margin:4px 0;color:var(--muted);font-size:12px}.auth-head button{border:0;border-radius:9px;background:var(--teal2);padding:8px 12px;color:var(--ink)}.auth-card .field{margin:12px 0}.auth-card input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fbfdfc}.auth-card .btn{width:100%;margin-top:9px}.auth-message{font-size:13px;min-height:20px}.auth-note{display:block;line-height:1.5}
 </style>
 </head>
 <body><div class="layout">
@@ -34,7 +35,7 @@
 <div class="label">OVERVIEW</div><button class="active" data-page="dashboard">▦　Dashboard</button><button data-page="rates">◈　Exchange Rates</button><button data-page="exchange">⇄　New Exchange</button>
 <div class="label">CUSTOMER & FINANCE</div><button data-page="requests">♧　Customer Requests</button><button data-page="customers">♙　Customers</button><button data-page="ledger">▤　Money Ledger</button><button data-page="bank">▣　Cash & Bank</button><button data-page="daily">☑　Daily Closing</button>
 <div class="label">REPORTS & CONTROL</div><button data-page="receipts">▧　Digital Receipts</button><button data-page="audit">◷　Audit Log</button><button data-page="notify">♧　Notifications</button><button data-page="settings">⚙　Settings</button><button data-page="customer">◎　Customer Website</button></nav><div class="sidefoot">Independent new workspace<br>THB ⇄ MMK · Owner Console</div></aside>
-<main class="main"><header class="top"><div class="toplabel"><b id="title">Owner Dashboard</b><br><small>MK EXCHANGE · Independent workspace</small></div><div class="brand mobile"><div class="logo">MK</div><b>MK EXCHANGE</b></div><div class="topright"><select aria-label="Language"><option>မြန်မာ</option><option>English</option><option>ไทย</option></select><span class="tag">OWNER PREVIEW</span></div></header>
+<main class="main"><header class="top"><div class="toplabel"><b id="title">Owner Dashboard</b><br><small>MK EXCHANGE · Independent workspace</small></div><div class="brand mobile"><div class="logo">MK</div><b>MK EXCHANGE</b></div><div class="topright"><button class="btn secondary" id="ownerLoginBtn" type="button">Owner Login</button><select aria-label="Language"><option>မြန်မာ</option><option>English</option><option>ไทย</option></select><span class="tag">OWNER PREVIEW</span></div></header>
 <div class="mobile-bottom" aria-label="Main navigation">
 <button class="bottom-item active" data-page="dashboard"><span class="bottom-icon">⌂</span><span>Home</span></button>
 <button class="bottom-item" data-page="exchange"><span class="bottom-icon">⇄</span><span>Exchange</span></button>
@@ -78,6 +79,18 @@
 <section class="screen" id="settings"><div class="welcome"><div><h1>Owner Settings</h1><p>လုပ်ငန်းအချက်အလက်နှင့် လုံခြုံရေး</p></div></div><div class="panel"><div class="formgrid"><div class="field"><label>Business Name</label><input value="MK EXCHANGE"></div><div class="field"><label>Owner Name</label><input placeholder="Owner အမည်"></div><div class="field"><label>Contact</label><input placeholder="Phone / Email"></div><div class="field"><label>Timezone</label><input value="Asia/Bangkok" readonly></div></div><div class="notice">Owner Login, 2FA, Backup နှင့် Permissions များကို Firebase အသစ်ဖြင့် ချိတ်ဆက်ပြီးမှ အသုံးပြုနိုင်မည်။</div></div></section>
 <section class="screen" id="customer"><div class="welcome"><div><h1>Customer Website Preview</h1><p>Customer အတွက် ငွေလဲနှုန်းနှင့် Request Portal</p></div></div><div class="cols"><div class="panel"><h2>Exchange Calculator</h2><div class="field"><label>Type</label><select id="cuType"><option value="a">ဘတ်ပေး ကျပ်ယူ</option><option value="b">ကျပ်ပေး ဘတ်ယူ</option></select></div><div class="field"><label>Amount</label><input id="cuAmount" type="number" placeholder="ပမာဏ"></div><div class="notice" id="cuResult">Rate မသတ်မှတ်ရသေးပါ။</div><button class="btn" onclick="alert('Customer Request ကို Backend ချိတ်ပြီးမှ ပေးပို့နိုင်ပါမည်။')">ငွေလဲတောင်းဆိုရန်</button></div><div class="panel"><h2>My Requests & Receipts</h2><div class="empty">Login ပြီးမှ ကိုယ်ပိုင် Request နှင့် Receipt များကို ကြည့်နိုင်မည်။</div></div></div></section>
 </div></main></div>
+<div class="auth-modal" id="authModal" aria-hidden="true">
+ <div class="auth-backdrop" id="authBackdrop"></div>
+ <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="auth-head"><div><h2 id="authTitle">Owner Login</h2><p>MK EXCHANGE · Secure access</p></div><button id="authClose" type="button" aria-label="Close">✕</button></div>
+  <div class="field"><label for="ownerEmail">Owner Email</label><input id="ownerEmail" type="email" autocomplete="username" placeholder="owner@example.com"></div>
+  <div class="field"><label for="ownerPassword">Password</label><input id="ownerPassword" type="password" autocomplete="current-password" placeholder="Password"></div>
+  <button class="btn" id="emailLogin" type="button">Sign in with Email</button>
+  <button class="btn secondary" id="googleLogin" type="button">Continue with Google</button>
+  <p id="authMessage" class="auth-message">Firebase ချိတ်ဆက်မှုကို စစ်ဆေးနေသည်။</p>
+  <small class="auth-note">Owner permission ကို အတည်မပြုမချင်း ငွေစာရင်းများကို ဖတ်/ရေးခွင့် မပေးပါ။</small>
+ </section>
+</div>
 <script>
 const names={dashboard:"Owner Dashboard",rates:"Exchange Rates",exchange:"New Exchange",requests:"Customer Requests",customers:"Customers",ledger:"Money Ledger",bank:"Cash & Bank",daily:"Daily Closing",receipts:"Digital Receipts",audit:"Audit Log",notify:"Notifications",settings:"Owner Settings",customer:"Customer Website Preview"};
 function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));const morePages=["rates","requests","bank","daily","receipts","audit","notify","settings","customer"];document.getElementById("moreToggle").classList.toggle("active",morePages.includes(id));document.getElementById("title").textContent=names[id]||"MK EXCHANGE";window.scrollTo(0,0)}
@@ -94,4 +107,6 @@ $("exAmount").addEventListener("input",calcEx);$("exRate").addEventListener("inp
 function calcEx(){let v=num("exAmount"),r=num("exRate"),b=$("exType").value==="a";$("exResult").textContent=v&&r?(b?fmt(v*r)+" MMK":"฿ "+fmt(v/r)):"ပမာဏနှင့် Rate ထည့်ပါ။"}
 $("cuAmount").addEventListener("input",calcCu);$("cuType").addEventListener("change",calcCu);
 function calcCu(){let a=num("cuAmount"),b=$("cuType").value==="a",r=num(b?"rateA":"rateB");$("cuResult").textContent=a&&r?(b?fmt(a*r)+" MMK":"฿ "+fmt(a/r)):"Rate မသတ်မှတ်ရသေးပါ။"}
-</script></body></html>
+</script>
+<script type="module" src="/auth.js"></script>
+</body></html>
