@@ -41,9 +41,8 @@ async function loadRates() {
 }
 function calculate() {
   const direction = $("calcDirection").value;
-  const priceType = $("calcPriceType").value;
   const amount = Number($("calcAmount").value || 0);
-  const rate = Number(currentRates[direction === "a" ? "rateA_" + priceType : "rateB_" + priceType] || 0);
+  const rate = Number(currentRates[direction === "a" ? "rateA_buy" : "rateB_buy"] || 0);
   if (!amount || !rate) {
     $("calcResult").textContent = "Rate သတ်မှတ်ပြီး ပမာဏထည့်ပါ။";
     return;
@@ -77,8 +76,8 @@ $("saveRates").addEventListener("click", async () => {
     button.disabled = false;
   }
 });
-["calcDirection", "calcPriceType", "calcAmount"].forEach(id => $(id).addEventListener("input", calculate));
-["calcDirection", "calcPriceType"].forEach(id => $(id).addEventListener("change", calculate));
+["calcDirection", "calcAmount"].forEach(id => $(id).addEventListener("input", calculate));
+$("calcDirection").addEventListener("change", calculate);
 onAuthStateChanged(auth, async user => {
   ownerReady = isOwner(user);
   ids.forEach(id => { $(id).disabled = !ownerReady; });
