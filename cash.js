@@ -58,6 +58,7 @@ $("cashForm").addEventListener("submit",async e=>{
  }catch(err){msg("သိမ်းဆည်းမရပါ: "+err.message,true);}
  finally{btn.disabled=false;}
 });
+window.addEventListener("mkexchange:cash-updated",()=>{if(allowed)refresh().catch(err=>msg("လက်ကျန် ပြန်ဖတ်မရပါ: "+err.message,true));});
 onAuthStateChanged(auth,async user=>{
  allowed=isOwner(user);
  ["cashCurrency","cashAccountType","cashBankId","cashEntryType","cashAmount","cashNote","cashSave"].forEach(id=>$(id).disabled=!allowed);
