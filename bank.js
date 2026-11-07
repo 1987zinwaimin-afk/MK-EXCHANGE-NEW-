@@ -1,6 +1,7 @@
 import {
   auth, db, onAuthStateChanged,
-  collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp
+  collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp,
+  storage, storageRef, uploadBytes, getDownloadURL, deleteObject
 } from "./firebase.js";
 
 const OWNER_EMAIL = "1987zinwaimin@gmail.com";
@@ -12,6 +13,8 @@ const saveButton = $("bankSave");
 const cancelButton = $("bankCancel");
 let ownerReady = false;
 let editingId = null;
+let selectedQrFile = null;
+let previewObjectUrl = null;
 
 function say(text, error = false) {
   message.textContent = text;
@@ -34,10 +37,26 @@ function fieldValue(id) {
 }
 function resetForm() {
   form.reset();
+  clearQrSelection();
   editingId = null;
   $("bankFormTitle").textContent = "＋ ဘဏ်အကောင့်အသစ် ထည့်ရန်";
   saveButton.textContent = "အကောင့် သိမ်းဆည်းရန်";
   cancelButton.hidden = true;
+}
+function clearQrSelection() {
+  selectedQrFile = null;
+  const input = $("bankQrFile");
+  if (input) input.value = "";
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = null;
+  $("bankQrPreview").style.display = "none";
+  $("bankQrPreviewImg").removeAttribute("src");
+}
+function showQrPreview(file) {
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = URL.createObjectURL(file);
+  $("bankQrPreviewImg").src = previewObjectUrl;
+  $("bankQrPreview").style.display = "block";
 }
 function makeText(tag, className, value) {
   const el = document.createElement(tag);
@@ -110,7 +129,11 @@ function beginEdit(account) {
   $("bankNumber").value = account.accountNumber || "";
   $("bankType").value = account.accountType || "Saving";
   $("bankBranch").value = account.branch || "";
-  $("bankQrUrl").value = account.qrUrl || "";
+  clearQrSelection();
+  if (account.qrUrl) {
+    $("bankQrPreviewImg").src = account.qrUrl;
+    $("bankQrPreview").style.display = "block";
+  }
   $("bankNote").value = account.note || "";
   $("bankFormTitle").textContent = "ဘဏ်အကောင့် ပြင်ဆင်ရန်";
   saveButton.textContent = "ပြင်ဆင်ချက် သိမ်းရန်";
@@ -120,7 +143,11 @@ function beginEdit(account) {
 async function removeAccount(id, name) {
   if (!ownerReady || !confirm((name || "ဤအကောင့်") + " ကို ဖျက်မှာ သေချာပါသလား။")) return;
   try {
-    await deleteDoc(doc(db, "ownerBankAccounts", id));
+    const accountRef = doc(db, "ownerBankAccounts", id);
+    const snapshot = await getDocs(query(collection(db, "ownerBankAccounts")));
+    const old = snapshot.docs.find(item => item.id === id)?.data();
+    await deleteDoc(accountRef);
+    if (old?.qrPath) { try { await deleteObject(storageRef(storage, old.qrPath)); } catch {} }
     say("ဘဏ်အကောင့်ကို ဖျက်ပြီးပါပြီ။");
     await loadAccounts();
   } catch (error) {
@@ -136,13 +163,13 @@ form.addEventListener("submit", async (event) => {
   const bankName = fieldValue("bankName");
   const holderName = fieldValue("bankHolder");
   const accountNumber = fieldValue("bankNumber");
-  const qrInput = fieldValue("bankQrUrl");
-  if (!bankName || !holderName || !accountNumber) {
-    say("ဘဏ်အမည်၊ Account Holder နှင့် Account Number ဖြည့်ပါ။", true);
+  const qrFile = selectedQrFile;
+  if (qrFile && (!qrFile.type.startsWith("image/") || qrFile.size > 5 * 1024 * 1024)) {
+    say("QR ပုံသည် Image ဖြစ်ရမည်၊ 5MB ထက်မကျော်ရပါ။", true);
     return;
   }
-  if (qrInput && !safeQrUrl(qrInput)) {
-    say("QR Image URL သည် https:// ဖြင့် စတင်ရပါမည်။", true);
+  if (!bankName || !holderName || !accountNumber) {
+    say("ဘဏ်အမည်၊ Account Holder နှင့် Account Number ဖြည့်ပါ။", true);
     return;
   }
   const data = {
@@ -152,19 +179,31 @@ form.addEventListener("submit", async (event) => {
     accountNumber,
     accountType: $("bankType").value,
     branch: fieldValue("bankBranch"),
-    qrUrl: qrInput,
+    qrUrl: "",
     note: fieldValue("bankNote"),
     updatedAt: serverTimestamp()
   };
   saveButton.disabled = true;
   try {
+    let accountId = editingId;
+    let previousQrPath = "";
     if (editingId) {
+      const snap = await getDocs(query(collection(db, "ownerBankAccounts")));
+      previousQrPath = snap.docs.find(item => item.id === editingId)?.data()?.qrPath || "";
       await updateDoc(doc(db, "ownerBankAccounts", editingId), data);
-      say("ဘဏ်အကောင့် ပြင်ဆင်ပြီးပါပြီ။");
     } else {
-      await addDoc(collection(db, "ownerBankAccounts"), { ...data, createdAt: serverTimestamp() });
-      say("ဘဏ်အကောင့် အသစ် သိမ်းဆည်းပြီးပါပြီ။");
+      const created = await addDoc(collection(db, "ownerBankAccounts"), { ...data, createdAt: serverTimestamp() });
+      accountId = created.id;
     }
+    if (qrFile) {
+      const path = "bank-qr/" + auth.currentUser.uid + "/" + accountId + "/" + Date.now() + "-" + qrFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const fileRef = storageRef(storage, path);
+      await uploadBytes(fileRef, qrFile, { contentType: qrFile.type });
+      const url = await getDownloadURL(fileRef);
+      await updateDoc(doc(db, "ownerBankAccounts", accountId), { qrUrl: url, qrPath: path });
+      if (previousQrPath) { try { await deleteObject(storageRef(storage, previousQrPath)); } catch {} }
+    }
+    say(editingId ? "ဘဏ်အကောင့် ပြင်ဆင်ပြီးပါပြီ။" : "ဘဏ်အကောင့် အသစ် သိမ်းဆည်းပြီးပါပြီ။");
     resetForm();
     await loadAccounts();
   } catch (error) {
@@ -174,6 +213,20 @@ form.addEventListener("submit", async (event) => {
   }
 });
 cancelButton.addEventListener("click", resetForm);
+$("bankQrFile").addEventListener("change", () => {
+  const file = $("bankQrFile").files?.[0] || null;
+  selectedQrFile = file;
+  if (!file) { $("bankQrPreview").style.display = "none"; return; }
+  if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+    selectedQrFile = null;
+    $("bankQrFile").value = "";
+    say("Image ဖိုင်သာရွေးပါ။ အများဆုံး 5MB ဖြစ်ရပါမည်။", true);
+    return;
+  }
+  showQrPreview(file);
+  say("QR ပုံရွေးပြီးပါပြီ။ သိမ်းဆည်းရန် နှိပ်ပါ။");
+});
+$("bankQrRemove").addEventListener("click", clearQrSelection);
 
 onAuthStateChanged(auth, async (user) => {
   ownerReady = isOwner(user);
