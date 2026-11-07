@@ -1,0 +1,23 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDKJOUClHaD8A40bpzjOxn1j1_QWWBOzpo",
+  authDomain: "mk-exchange-44876.firebaseapp.com",
+  projectId: "mk-exchange-44876",
+  storageBucket: "mk-exchange-44876.firebasestorage.app",
+  messagingSenderId: "948420608859",
+  appId: "1:948420608859:web:2edd66d8d6253809ea107e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+await setPersistence(auth, browserLocalPersistence);
+
+window.MKFirebase = {
+  app, auth, db, onAuthStateChanged, signInWithEmailAndPassword,
+  signInWithPopup, GoogleAuthProvider, signOut
+};
+window.dispatchEvent(new Event("mk-firebase-ready"));
