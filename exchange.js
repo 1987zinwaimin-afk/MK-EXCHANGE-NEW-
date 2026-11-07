@@ -22,8 +22,8 @@ function getFlow(){
  fillAccounts();calc();
 }
 function calc(){
- const a=$("exType").value==="a",kind=$("exPriceType").value;
- const key=a?"rateA_"+kind:"rateB_"+kind,rate=Number(rates[key]||0),amount=Number($("exAmount").value||0);
+ const a=$("exType").value==="a";
+ const key=a?"rateA_buy":"rateB_buy",rate=Number(rates[key]||0),amount=Number($("exAmount").value||0);
  $("exRate").value=rate||"";
  const out=rate&&amount>0?(a?amount*rate:amount/rate):0;
  $("exResult").textContent=out?(a?fmt(amount)+" THB → "+fmt(out)+" MMK":fmt(amount)+" MMK → "+fmt(out)+" THB"):"Rate နှင့် ပမာဏ ထည့်ပါ။";
@@ -36,7 +36,7 @@ async function loadSetup(){
  rates=rs.exists()?rs.data():{};
  getFlow();
 }
-["exType","exPriceType"].forEach(id=>$(id).addEventListener("change",calc));
+["exType"].forEach(id=>$(id).addEventListener("change",getFlow));
 $("exAmount").addEventListener("input",calc);
 $("exReceiveCurrency").textContent="THB";$("exPayCurrency").textContent="MMK";
 $("exForm").addEventListener("submit",async e=>{
@@ -52,7 +52,7 @@ $("exForm").addEventListener("submit",async e=>{
  try{
   const transactionRef=doc(collection(db,"exchangeTransactions"));
   const batch=writeBatch(db);
-  const common={transactionId:transactionRef.id,customerName:customer,direction:a?"THB_TO_MMK":"MMK_TO_THB",priceType:$("exPriceType").value,rate,inputAmount:amount,outputAmount:out,note:$("exNote").value.trim(),status:"COMPLETED",createdAt:serverTimestamp(),createdBy:auth.currentUser.email};
+  const common={transactionId:transactionRef.id,customerName:customer,direction:a?"THB_TO_MMK":"MMK_TO_THB",rateKey:a?"rateA_buy":"rateB_buy",rate,inputAmount:amount,outputAmount:out,note:$("exNote").value.trim(),status:"COMPLETED",createdAt:serverTimestamp(),createdBy:auth.currentUser.email};
   batch.set(transactionRef,common);
   const movement=(currency,account,entryType,value,note)=>batch.set(doc(collection(db,"cashMovements")),{currency,accountType:account==="CASH"?"CASH":"BANK",bankId:account==="CASH"?"":account,entryType,amount:value,note,source:"EXCHANGE",transactionId:transactionRef.id,createdAt:serverTimestamp(),createdBy:auth.currentUser.email});
   movement(receiveCurrency,receiveAccount,"IN",amount,"Exchange လက်ခံငွေ · "+customer);
@@ -60,7 +60,7 @@ $("exForm").addEventListener("submit",async e=>{
   batch.set(doc(collection(db,"auditLogs")),{action:"EXCHANGE_CREATED",transactionId:transactionRef.id,description:"Exchange completed for "+customer,createdAt:serverTimestamp(),createdBy:auth.currentUser.email});
   await batch.commit();
   $("exReceiptId").textContent="Receipt ID: "+transactionRef.id;
-  $("exForm").reset();getFlow();$("exPriceType").value="sell";calc();
+  $("exForm").reset();getFlow();calc();
   say("Transaction သိမ်းဆည်းပြီးပါပြီ။ Cash & Bank လက်ကျန်ကို အလိုအလျောက် ပြင်ဆင်ထားပါသည်။");
   window.dispatchEvent(new CustomEvent("mkexchange:cash-updated"));
  }catch(err){say("Transaction သိမ်းဆည်းမရပါ: "+err.message,true);}
@@ -68,7 +68,7 @@ $("exForm").addEventListener("submit",async e=>{
 });
 onAuthStateChanged(auth,async user=>{
  ownerReady=owner(user);
- ["exType","exPriceType","exCustomer","exAmount","exReceiveAccount","exPayAccount","exNote"].forEach(id=>$(id).disabled=!ownerReady);
+ ["exType","exCustomer","exAmount","exReceiveAccount","exPayAccount","exNote"].forEach(id=>$(id).disabled=!ownerReady);
  $("exSave").disabled=!ownerReady;
  if(ownerReady){try{await loadSetup();say("Owner အတည်ပြုပြီးပါပြီ။ Transaction အသစ် သိမ်းနိုင်ပါသည်။");}catch(err){say("Rate/Bank အချက်အလက် ဖတ်မရပါ: "+err.message,true);}}
  else say("Verified Owner Login ဝင်ပြီးမှ Transaction အသုံးပြုနိုင်ပါသည်။",true);
