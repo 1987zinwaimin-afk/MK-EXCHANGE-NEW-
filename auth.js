@@ -1,3 +1,4 @@
+import { auth, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from "./firebase.js";
 const OWNER_EMAIL = ""; // Set only after the business owner confirms the exact owner email.
 const byId = (id) => document.getElementById(id);
 const status = byId("authStatus");
@@ -9,8 +10,8 @@ function closeAuth(){modal.classList.remove("open");modal.setAttribute("aria-hid
 byId("ownerLoginBtn").addEventListener("click",openAuth);
 byId("authClose").addEventListener("click",closeAuth);
 byId("authBackdrop").addEventListener("click",closeAuth);
-window.addEventListener("mk-firebase-ready",()=>{
- const fb=window.MKFirebase;
+{
+ const fb={auth,onAuthStateChanged,signInWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut};
  fb.onAuthStateChanged(fb.auth,user=>{
    if(!user){status.textContent="OWNER LOGIN";byId("ownerLoginBtn").textContent="Owner Login";return;}
    const isOwner=!!OWNER_EMAIL && user.email?.toLowerCase()===OWNER_EMAIL.toLowerCase();
@@ -29,5 +30,5 @@ window.addEventListener("mk-firebase-ready",()=>{
  });
  byId("ownerLoginBtn").addEventListener("dblclick",async()=>{if(fb.auth.currentUser){await fb.signOut(fb.auth);setMessage("Signed out.");}});
  setMessage("Firebase ချိတ်ဆက်ပြီးပါပြီ။ Owner email ကို သတ်မှတ်ရန် လိုအပ်သည်။");
-}, {once:true});
+}
 window.addEventListener("error",e=>{if(e.message?.includes("Firebase"))setMessage(e.message,true);});
