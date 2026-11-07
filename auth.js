@@ -48,12 +48,11 @@ onAuthStateChanged(auth, async (user) => {
   }
   if (!ownerVerified) {
     const correctEmail = user.email?.toLowerCase() === OWNER_EMAIL;
-    await signOut(auth);
-    status.textContent = "OWNER PREVIEW";
+    status.textContent = correctEmail ? "EMAIL NOT VERIFIED" : "OWNER PREVIEW";
     $("ownerLoginBtn").textContent = "Owner Login";
     setMessage(
       correctEmail
-        ? "Owner Email ကို Verify လုပ်ပြီးမှ ဝင်နိုင်ပါမယ်။"
+        ? "Email မ Verify ရသေးပါ။ Sign in with Email ကို ထပ်နှိပ်ပါက Verification Email ပြန်ပို့ပေးပါမည်။"
         : "ဒီ Google Account ကို Owner အဖြစ် ခွင့်မပြုထားပါ။",
       true
     );
@@ -78,7 +77,19 @@ $("emailLogin").addEventListener("click", async () => {
     return;
   }
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+    if (!credential.user.emailVerified) {
+      try {
+        await sendEmailVerification(credential.user);
+        setMessage("Verification Email ကို " + email + " သို့ ပြန်ပို့ပြီးပါပြီ။ Gmail Inbox / Spam ထဲစစ်ပြီး Verify လုပ်ပါ။");
+      } catch (sendError) {
+        setMessage("Email ပို့မရပါ။ " + sendError.message + " — ခဏစောင့်ပြီး ထပ်စမ်းပါ။", true);
+      }
+      await signOut(auth);
+      openAuth();
+      return;
+    }
+    setMessage("Owner Login အောင်မြင်ပါသည်။");
   } catch (error) {
     setMessage("Login မအောင်မြင်ပါ။ " + error.message, true);
   }
