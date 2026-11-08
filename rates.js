@@ -43,12 +43,16 @@ function calculate() {
   const direction = $("calcDirection").value;
   const amount = Number($("calcAmount").value || 0);
   const rate = Number(currentRates[direction === "a" ? "rateA_buy" : "rateB_buy"] || 0);
+  const receiveCurrency = direction === "a" ? "THB" : "MMK";
+  const enteredCurrency = $("calcInputCurrency").value;
+  const inputIsReceive = enteredCurrency === receiveCurrency;
   if (!amount || !rate) {
     $("calcResult").textContent = "Rate သတ်မှတ်ပြီး ပမာဏထည့်ပါ။";
     return;
   }
-  const result = direction === "a" ? amount * rate : amount / rate;
-  $("calcResult").textContent = direction === "a" ? fmt(result) + " MMK" : fmt(result) + " THB";
+  const result = inputIsReceive ? amount * rate : amount / rate;
+  const outputCurrency = inputIsReceive ? (direction === "a" ? "MMK" : "THB") : receiveCurrency;
+  $("calcResult").textContent = fmt(amount) + " " + enteredCurrency + " → " + fmt(result) + " " + outputCurrency;
 }
 $("saveRates").addEventListener("click", async () => {
   if (!ownerReady) { message("Verified Owner Login ဝင်ပြီးမှ Rate သိမ်းနိုင်ပါသည်။", true); return; }
@@ -76,8 +80,8 @@ $("saveRates").addEventListener("click", async () => {
     button.disabled = false;
   }
 });
-["calcDirection", "calcAmount"].forEach(id => $(id).addEventListener("input", calculate));
-$("calcDirection").addEventListener("change", calculate);
+["calcDirection", "calcInputCurrency", "calcAmount"].forEach(id => $(id).addEventListener("input", calculate));
+["calcDirection", "calcInputCurrency"].forEach(id => $(id).addEventListener("change", calculate));
 onAuthStateChanged(auth, async user => {
   ownerReady = isOwner(user);
   ids.forEach(id => { $(id).disabled = !ownerReady; });
