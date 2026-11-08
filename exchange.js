@@ -23,12 +23,16 @@ function getFlow(){
 }
 function calc(){
  const a=$("exType").value==="a";
+ const receiveCurrency=a?"THB":"MMK",payCurrency=a?"MMK":"THB";
  const key=a?"rateA_buy":"rateB_buy",rate=Number(rates[key]||0),amount=Number($("exAmount").value||0);
+ const enteredCurrency=$("exInputCurrency").value;
+ const inputIsReceive=enteredCurrency===receiveCurrency;
+ const output=rate&&amount>0?(inputIsReceive?amount*rate:amount/rate):0;
+ const receiveAmount=inputIsReceive?amount:output,payAmount=inputIsReceive?output:amount;
  $("exRate").value=rate||"";
- const out=rate&&amount>0?(a?amount*rate:amount/rate):0;
- $("exResult").textContent=out?(a?fmt(amount)+" THB → "+fmt(out)+" MMK":fmt(amount)+" MMK → "+fmt(out)+" THB"):"Rate နှင့် ပမာဏ ထည့်ပါ။";
- $("exSave").disabled=!ownerReady||!out;
- return {a,rate,amount,out};
+ $("exResult").textContent=output?(fmt(amount)+" "+enteredCurrency+" → "+fmt(output)+" "+(inputIsReceive?payCurrency:receiveCurrency)):"Rate နှင့် ပမာဏ ထည့်ပါ။";
+ $("exSave").disabled=!ownerReady||!output;
+ return {a,rate,amount,output,receiveCurrency,payCurrency,receiveAmount,payAmount,enteredCurrency};
 }
 async function loadSetup(){
  const [bs,rs]=await Promise.all([getDocs(query(collection(db,"ownerBankAccounts"))),getDoc(doc(db,"exchangeSettings","current"))]);
@@ -37,26 +41,26 @@ async function loadSetup(){
  getFlow();
 }
 ["exType"].forEach(id=>$(id).addEventListener("change",getFlow));
-$("exAmount").addEventListener("input",calc);
+["exAmount","exInputCurrency"].forEach(id=>$(id).addEventListener("input",calc));
+$("exInputCurrency").addEventListener("change",calc);
 $("exReceiveCurrency").textContent="THB";$("exPayCurrency").textContent="MMK";
 $("exForm").addEventListener("submit",async e=>{
  e.preventDefault();
  if(!ownerReady){say("Verified Owner Login ဝင်ပြီးမှ Transaction သိမ်းနိုင်ပါသည်။",true);return;}
- const {a,rate,amount,out}=calc();
+ const {a,rate,amount,output,receiveCurrency,payCurrency,receiveAmount,payAmount,enteredCurrency}=calc();
  const customer=$("exCustomer").value.trim();
  if(!customer){say("Customer အမည် ဖြည့်ပါ။",true);return;}
- if(!(rate>0&&amount>0&&out>0)){say("Rate နှင့် ပမာဏကို စစ်ဆေးပါ။",true);return;}
- const receiveCurrency=a?"THB":"MMK",payCurrency=a?"MMK":"THB";
+ if(!(rate>0&&amount>0&&output>0)){say("Rate နှင့် ပမာဏကို စစ်ဆေးပါ။",true);return;}
  const receiveAccount=$("exReceiveAccount").value,payAccount=$("exPayAccount").value;
  const btn=$("exSave");btn.disabled=true;
  try{
   const transactionRef=doc(collection(db,"exchangeTransactions"));
   const batch=writeBatch(db);
-  const common={transactionId:transactionRef.id,customerName:customer,direction:a?"THB_TO_MMK":"MMK_TO_THB",rateKey:a?"rateA_buy":"rateB_buy",rate,inputAmount:amount,outputAmount:out,note:$("exNote").value.trim(),status:"COMPLETED",createdAt:serverTimestamp(),createdBy:auth.currentUser.email};
+  const common={transactionId:transactionRef.id,customerName:customer,direction:a?"THB_TO_MMK":"MMK_TO_THB",rateKey:a?"rateA_buy":"rateB_buy",rate,inputCurrency:enteredCurrency,inputAmount:amount,receiveCurrency,payCurrency,receiveAmount,payAmount,note:$("exNote").value.trim(),status:"COMPLETED",createdAt:serverTimestamp(),createdBy:auth.currentUser.email};
   batch.set(transactionRef,common);
   const movement=(currency,account,entryType,value,note)=>batch.set(doc(collection(db,"cashMovements")),{currency,accountType:account==="CASH"?"CASH":"BANK",bankId:account==="CASH"?"":account,entryType,amount:value,note,source:"EXCHANGE",transactionId:transactionRef.id,createdAt:serverTimestamp(),createdBy:auth.currentUser.email});
-  movement(receiveCurrency,receiveAccount,"IN",amount,"Exchange လက်ခံငွေ · "+customer);
-  movement(payCurrency,payAccount,"OUT",out,"Exchange ပေးငွေ · "+customer);
+  movement(receiveCurrency,receiveAccount,"IN",receiveAmount,"Exchange လက်ခံငွေ · "+customer);
+  movement(payCurrency,payAccount,"OUT",payAmount,"Exchange ပေးငွေ · "+customer);
   batch.set(doc(collection(db,"auditLogs")),{action:"EXCHANGE_CREATED",transactionId:transactionRef.id,description:"Exchange completed for "+customer,createdAt:serverTimestamp(),createdBy:auth.currentUser.email});
   await batch.commit();
   $("exReceiptId").textContent="Receipt ID: "+transactionRef.id;
@@ -68,7 +72,7 @@ $("exForm").addEventListener("submit",async e=>{
 });
 onAuthStateChanged(auth,async user=>{
  ownerReady=owner(user);
- ["exType","exCustomer","exAmount","exReceiveAccount","exPayAccount","exNote"].forEach(id=>$(id).disabled=!ownerReady);
+ ["exType","exInputCurrency","exCustomer","exAmount","exReceiveAccount","exPayAccount","exNote"].forEach(id=>$(id).disabled=!ownerReady);
  $("exSave").disabled=!ownerReady;
  if(ownerReady){try{await loadSetup();say("Owner အတည်ပြုပြီးပါပြီ။ Transaction အသစ် သိမ်းနိုင်ပါသည်။");}catch(err){say("Rate/Bank အချက်အလက် ဖတ်မရပါ: "+err.message,true);}}
  else say("Verified Owner Login ဝင်ပြီးမှ Transaction အသုံးပြုနိုင်ပါသည်။",true);
